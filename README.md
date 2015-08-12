@@ -11,14 +11,18 @@ Both GET and POST return an AIFF (Content-type: audio/aiff) that can be played
 via a browser, mplayer or VLC.
 
 
-## GET /[voice]?[sentence]
+## GET /[voice].[format]?[sentence]
 That's the easiest way to test with your browser, the following URL gets Alex
 to say hello:
 
     http://localhost:9999/alex?hello
 
+If your browser does not support AIFF and you have ffmpeg installed on the sayd
+server, you can also try:
 
-## POST /[voice]
+    http://localhost:9999/alex.mp3?hello
+
+## POST /[voice].[format]
 Use this from curl or your app, the body of the POST contains the sentence or
 words you want to get. The advantage is that you don't need to worry about URL
 encoding.
