@@ -18,6 +18,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		get(w, r)
 	case "POST":
 		post(w, r)
+	case "HEAD":
+		head(w, r)
 	default:
 		errorHandler(w, nil, "unsupported method")
 	}
@@ -36,7 +38,21 @@ func get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseHandler(w, sentence, voice, format)
+	responseHandler(w, sentence, voice, format, false)
+}
+
+// The HEAD method for this service works exactly like a GET except that it
+// doesn't return the body of the response.
+//
+func head(w http.ResponseWriter, r *http.Request) {
+	voice, format := parseVoiceFromPath(r.URL.Path)
+	sentence, err := url.QueryUnescape(r.URL.RawQuery)
+	if err != nil {
+		errorHandler(w, err, "bad query")
+		return
+	}
+
+	responseHandler(w, sentence, voice, format, true)
 }
 
 // The POST method expects the voice to be used as the only path and the
@@ -50,10 +66,10 @@ func post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseHandler(w, string(sentence), voice, format)
+	responseHandler(w, string(sentence), voice, format, false)
 }
 
-func responseHandler(w http.ResponseWriter, sentence, voice, format string) {
+func responseHandler(w http.ResponseWriter, sentence, voice, format string, head bool) {
 	dirpath, err := ioutil.TempDir("", "sayd")
 	if err != nil {
 		errorHandler(w, err, "failed to run say")
@@ -90,10 +106,14 @@ func responseHandler(w http.ResponseWriter, sentence, voice, format string) {
 
 	w.Header().Set("Content-type", mimetype)
 	w.Header().Set("Content-length", fmt.Sprintf("%d", info.Size()))
-	_, err = io.Copy(w, f)
-	if err != nil {
-		errorHandler(w, err, "failed to run say")
-		return
+	if head {
+		w.WriteHeader(200)
+	} else {
+		_, err = io.Copy(w, f)
+		if err != nil {
+			errorHandler(w, err, "failed to run say")
+			return
+		}
 	}
 
 	f.Close()
